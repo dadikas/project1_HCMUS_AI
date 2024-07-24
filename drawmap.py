@@ -5,12 +5,6 @@ from PIL import Image, ImageTk
 import time
 
 
-IMPASSABLE = '-1'
-START = 'S'
-GOAL = 'G'
-TOLL = 'T'
-FUEL_STATION = 'F'
-
 class Program:
     def __init__(self):
         self.root = Tk()
@@ -87,7 +81,7 @@ class Program:
 
             if paths:
                 # Load car image
-                self.car_image = Image.open("car.png")  # Path to your car image
+                self.car_image = Image.open("shipper.png")  # Path to your car image
                 self.car_image = self.car_image.resize((cell_size, cell_size), Image.ANTIALIAS)
                 self.car_photo = ImageTk.PhotoImage(self.car_image)
 
