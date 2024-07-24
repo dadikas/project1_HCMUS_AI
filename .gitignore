@@ -1,0 +1,8 @@
+.venv/
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/project1.iml
+.idea/vcs.xml
+__pycache__/drawmap.cpython-312.pyc
+__pycache__/variable.cpython-312.pyc
