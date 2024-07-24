@@ -82,7 +82,7 @@ class Program:
             if paths:
                 # Load car image
                 self.car_image = Image.open("shipper.png")  # Path to your car image
-                self.car_image = self.car_image.resize((cell_size, cell_size), Image.ANTIALIAS)
+                self.car_image = self.car_image.resize((cell_size, cell_size), Image.Resampling.LANCZOS)
                 self.car_photo = ImageTk.PhotoImage(self.car_image)
 
                 # Place car at the start
