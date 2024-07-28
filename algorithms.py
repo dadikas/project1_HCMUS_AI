@@ -196,7 +196,7 @@ def shortest_path_with_toll_lv3(grid, start, goal, max_time, n, m, max_fuel):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
     fuel_stations, toll_booths = find_fuel_stations(grid, n, m)
-    heap = [(0, start, max_fuel, 0, [start])]  # (heuristic, position, fuel, time, path)
+    heap = [(0, start, max_fuel, 0, [start])]  
     visited = set()
     steps = []
 
@@ -223,16 +223,31 @@ def shortest_path_with_toll_lv3(grid, start, goal, max_time, n, m, max_fuel):
                     next_fuel = current_fuel - 1
 
                     if next_position in toll_booths:
-                        next_fuel += 1  # No fuel consumption at toll booths
+                        next_fuel += 1  
 
                     if next_position in fuel_stations:
-                        next_fuel = max_fuel  # Refuel to full capacity
+                        next_fuel = max_fuel  
 
                     if (next_position, next_fuel) not in visited:
                         heappush(heap, (heuristic(next_position, goal), next_position, next_fuel, current_time + 1,
                                         current_path + [next_position]))
 
     return [start], steps, float('inf')
+
+
+def multi_agent_pathfinding(grid, vehicles, n, m, max_time):
+    while any(vehicle.current_position != vehicle.current_goal for vehicle in vehicles):
+        for vehicle in vehicles:
+
+            path, steps, _ = shortest_path_with_toll_lv3(grid, vehicle.current_position, vehicle.current_goal, max_time,
+                                                         n, m, vehicle.max_fuel)
+
+            if path and len(path) > 1:
+                vehicle.current_position = path[1]
+                vehicle.path.append(vehicle.current_position)
+
+    final_positions = [(vehicle.start, vehicle.current_goal) for vehicle in vehicles]
+    return final_positions
         
 
         

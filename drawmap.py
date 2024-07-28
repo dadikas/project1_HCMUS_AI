@@ -4,7 +4,8 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import time
 import algorithms
-
+from vehicals import Vehicle
+import re
 class Program:
     def __init__(self):
         self.root = Tk()
@@ -46,9 +47,35 @@ class Program:
                         elif GOAL in row[j]:
                             goals.append((i, j))
                     grid.append(row)
-            return grid, starts, goals, n, m
+            return grid, starts, goals, n, m, max_time, max_fuel
         except Exception as e:
             raise ValueError(f"Failed to read input file: {e}")
+
+    def readfile_level4(self, filename):
+        
+        vehicles = []
+        start_positions = {}
+        goal_positions = {}
+        with open(filename, 'r') as f:
+            n, m, max_fuel, max_time = map(int, f.readline().strip().split())
+            grid = []
+            for i in range(n):
+                row = f.readline().strip().split()
+                for j in range(m):
+                    for j in range(m):
+                        if row[j] == START or row[j].startswith("S"):
+                            start_positions[row[j]] = (i, j)
+                        elif row[j] == GOAL or row[j].startswith("G"):
+                            goal_positions[row[j]] = (i, j)
+                grid.append(row)
+        for key in start_positions:
+            goal_key = 'G' + key[1:] if key != 'S' else 'G'
+            if goal_key in goal_positions:
+                start = start_positions[key]
+                goal = goal_positions[goal_key]
+                vehicles.append(Vehicle(start, goal, max_fuel))
+
+        return grid, vehicles, n, m, max_fuel, max_time
 
     def select_file(self):
         """Display file selection dialog and setup the UI."""
@@ -61,22 +88,20 @@ class Program:
         Entry(self.root, textvariable=self.output_path, width=50).grid(row=1, column=1, padx=10, pady=5)
         Button(self.root, text="Browse", command=self.select_output_file).grid(row=1, column=2, padx=10, pady=5)
 
-        Label(self.root, text="Time limit:").grid(row=2, column=0, sticky=W, padx=10, pady=5)
-        Entry(self.root, textvariable=self.time_limit, width=50).grid(row=2, column=1, padx=10, pady=5)
-        Label(self.root, text="Fuel limit:").grid(row=3, column=0, sticky=W, padx=10, pady=5)
-        Entry(self.root, textvariable=self.fuel_limit, width=50).grid(row=3, column=1, padx=10, pady=5)
+        Label(self.root, text="Algorithm:").grid(row=2, column=0, sticky=W, padx=10, pady=5)
+        OptionMenu(self.root, self.algorithm, "BFS", "DFS", "UCS", "Greedy Best-First Search", "A*").grid(row=2, column=1, padx=10, pady=5)
 
-        Label(self.root, text="Algorithm:").grid(row=4, column=0, sticky=W, padx=10, pady=5)
-        OptionMenu(self.root, self.algorithm, "BFS", "DFS", "UCS", "Greedy Best-First Search", "A*").grid(row=4, column=1, padx=10, pady=5)
+        Button(self.root, text="Run Algorithm", command=self.run_algorithm).grid(row=3, column=1, pady=20)
+        Button(self.root, text="Run level 2", command=self.run_algorithm_level2).grid(row=4, column=1, pady=20)
+        Button(self.root, text="Run level 3", command=self.run_algorithm_level3).grid(row=5, column=1, pady=20)
+        Button(self.root, text="Run level 4", command=self.run_algorithm_level4).grid(row=6, column=1, pady=10)
+        Button(self.root, text="Draw", command=self.visualize_paths).grid(row=7, column=1, pady=10)
+        #Button(self.root, text="Draw level 4", command=self.visualize_paths_level_4).grid(row=8, column=1, pady=10)
 
-        Button(self.root, text="Run Algorithm", command=self.run_algorithm).grid(row=5, column=1, pady=20)
-        Button(self.root, text="Draw", command=self.visualize_paths).grid(row=6, column=1, pady=10)
-        Button(self.root, text="Run level 2", command=self.run_algorithm_level2).grid(row=7, column=1, pady=20)
-        Button(self.root, text="Run level 3", command=self.run_algorithm_level3).grid(row=8, column=1, pady=20)
 
         self.root.mainloop()
 
-    def draw_grid(self, canvas, grid, paths, n, m):
+    def draw_grid(self, canvas, grid, n, m):
         """Draw the grid and paths on the canvas."""
         cell_size = 40
         for i in range(n):
@@ -105,14 +130,58 @@ class Program:
                                x * cell_size + 3 * cell_size // 4,
                                fill="grey", outline="black")
             canvas.update()
-            time.sleep(0.5)
+            time.sleep(0.2)
 
     def animate_car(self, canvas, path, cell_size):
         """Animate the car image along the path."""
         for step in path:
             canvas.coords(self.vehical_id, step[1] * cell_size, step[0] * cell_size)
             canvas.update()
-            time.sleep(0.5)
+            time.sleep(0.2)
+
+    def draw_grid_level4(self, canvas, grid, n, m):
+        """Draw the grid and paths on the canvas."""
+        cell_size = 40
+        for i in range(n):
+            for j in range(m):
+                color = {
+                    IMPASSABLE: "black",
+                    START: "green",
+                    GOAL: "red",
+                    FUEL_STATION: "yellow"
+                }.get(grid[i][j], "white")
+                canvas.create_rectangle(j * cell_size, i * cell_size,
+                                        (j + 1) * cell_size, (i + 1) * cell_size,
+                                        fill=color, outline="black")
+                if grid[i][j].startswith("S"):
+                    canvas.create_rectangle(j * cell_size, i * cell_size,
+                                        (j + 1) * cell_size, (i + 1) * cell_size,
+                                        fill='green', outline="black")
+                elif grid[i][j].startswith("G"):
+                    canvas.create_rectangle(j * cell_size, i * cell_size,
+                                        (j + 1) * cell_size, (i + 1) * cell_size,
+                                        fill='red', outline="black")
+                if isinstance(grid[i][j], str) and grid[i][j] > '0':
+                    canvas.create_text((j * cell_size + (j + 1) * cell_size) // 2,
+                                    (i * cell_size + (i + 1) * cell_size) // 2,
+                                    text=str(grid[i][j]), fill="black")
+    def draw_level4(self, grid, paths, vehicles, n, m):
+        cell_size = 40
+        top = Toplevel(self.root)
+        top.title("Paths and Steps Visualization")
+        canvas = Canvas(top, width=m * cell_size, height=n * cell_size)
+        canvas.pack()
+        self.draw_grid_level4(canvas, grid, n, m)
+        for vehicle in vehicles:
+            path = vehicle.path
+            if path:
+                for k in range(1, len(path)):
+                    x1, y1 = path[k-1]
+                    x2, y2 = path[k]
+                    canvas.create_line((y1 + 0.5) * cell_size, (x1 + 0.5) * cell_size,
+                                    (y2 + 0.5) * cell_size, (x2 + 0.5) * cell_size,
+                                    fill="blue", width=2)
+
 
     def draw(self, grid, paths, steps, n, m):
         """Draw and animate the grid, paths, and steps."""
@@ -121,7 +190,7 @@ class Program:
         top.title("Paths and Steps Visualization")
         canvas = Canvas(top, width=m * cell_size, height=n * cell_size)
         canvas.pack()
-        self.draw_grid(canvas, grid, paths, n, m)
+        self.draw_grid(canvas, grid, n, m)
 
         if steps:
             self.animate_steps(canvas, steps, cell_size)
@@ -145,7 +214,7 @@ class Program:
     def visualize_paths(self):
         """Read output file and visualize paths."""
         try:
-            grid, starts, goals, n, m = self.read_input(self.input_path.get())
+            grid, starts, goals, n, m, max_time, max_fuel  = self.read_input(self.input_path.get())
             paths = []
             steps = []
 
@@ -161,11 +230,31 @@ class Program:
             self.draw(grid, paths, steps, n, m)
         except Exception as e:
             messagebox.showerror("Error", str(e))
+    def visualize_paths_level_4(self):
+        """Read output file and visualize paths."""
+        try:
+            grid, vehicles, n, m, max_time, max_fuel = self.readfile_level4(self.input_path.get())
+            paths = []
+            steps = []
+            with open(self.output_path.get(), 'r') as file:
+                for vehicle in vehicles:
+                    line = file.readline().strip()
+                    if line.startswith("Start:"):
+                        start = tuple(map(int, re.findall(r'\d+', line)))
+                    elif line.startswith("Goal:"):
+                        goal = tuple(map(int, re.findall(r'\d+', line)))
+                    elif line.startswith("Path:"):
+                        path = [tuple(map(int, pos.strip('()').split(','))) for pos in line.strip('Path: []').split('), (')]
+                        vehicle.path(path)
+
+            self.draw_level4(grid, paths, vehicles,n, m)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def run_algorithm(self):
         """Run the selected algorithm and save results to output file."""
         try:
-            grid, starts, goals, n, m = self.read_input(self.input_path.get())
+            grid, starts, goals, n, m, time, fuel = self.read_input(self.input_path.get())
             algorithm = self.algorithm.get()
             all_paths = []
             all_steps = []
@@ -199,8 +288,8 @@ class Program:
     def run_algorithm_level2(self):
         """Run the level 2 algorithm considering toll costs and save results to the output file."""
         try:
-            grid, starts, goals, n, m = self.read_input(self.input_path.get())
-            time_limit = int(self.time_limit.get())
+            grid, starts, goals, n, m,time_limit, fuel = self.read_input(self.input_path.get())
+
             all_paths = []
             all_steps = []
 
@@ -217,12 +306,11 @@ class Program:
             messagebox.showinfo("Success", "Level 2 algorithm completed successfully and output saved.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
     def run_algorithm_level3(self):
         """Run the level 3 algorithm considering toll costs and fuel constraints and save results to the output file."""
         try:
-            grid, starts, goals, n, m = self.read_input(self.input_path.get())
-            time_limit = int(self.time_limit.get())
-            fuel_limit = int(self.fuel_limit.get())
+            grid, starts, goals, n, m, time_limit, fuel_limit = self.read_input(self.input_path.get())
             all_paths = []
             all_steps = []
 
@@ -239,4 +327,18 @@ class Program:
             messagebox.showinfo("Success", "Level 3 algorithm completed successfully and output saved.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def run_algorithm_level4(self):
+        """Run the level 4 algorithm considering toll costs and fuel constraints and save results to the output file."""
+        try:
+            grid, vehicles, n, m, time_limit, fuel_limit = self.readfile_level4(self.input_path.get())
+            final_positions = algorithms.multi_agent_pathfinding(grid, vehicles, n, m, time_limit)
+
+            with open(self.output_path.get(), 'w') as file:
+                for vehicle in vehicles:
+                    file.write(f"Start: {vehicle.start}, Goal: {vehicle.current_goal}, Path: {vehicle.path}\n")
+            messagebox.showinfo("Success", "Level 4 algorithm completed successfully and output saved.")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
 
